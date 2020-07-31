@@ -1,7 +1,13 @@
-from django.shortcuts import render
+import random
+from django.conf import settings
+from django.shortcuts import render, redirect
 from django.http import HttpResponse, Http404, JsonResponse
+from django.utils.http import is_safe_url
 from .models import Tweet
 from .forms import TweetForm
+
+
+ALLOWED_HOSTS = settings.ALLOWED_HOSTS
 
 
 def home_view(request, *args, **kwargs):
@@ -26,12 +32,16 @@ def tweets_view(request, tweet_id, *args, **kwargs):
 def tweet_form(request, *args, **kwargs):
     # Tweet form can be initialized with data or not
     form = TweetForm(request.POST or None)
+    next_url = request.POST.get("next") or None
     # If the form has data, it will first confirm if the form is valid
     if form.is_valid():
         obj = form.save(commit=False)
         # Can add other form related changes
-        # Save it to the database if it is valid
+        # Save to the db if  valid
         obj.save()
+        if next_url != None and is_safe_url(next_url):
+            # is_safe_url will check if the url is of different hosts or if its safe.
+            return redirect(next_url)
         # Reinitialize a blank form
         form = TweetForm()
     return render(request, "components/form.html", context={"form": form})
@@ -39,8 +49,10 @@ def tweet_form(request, *args, **kwargs):
 
 def tweet_list_view(request, *args, **kwargs):
     obj = Tweet.objects.all()
-    list_of_tweets = [{"id": x.id, "content": x.content} for x in obj]
+    list_of_tweets = [{"id": x.id, "content": x.content,
+                       "likes": random.randint(1, 80)} for x in obj]
     data = {
+        "isUser": False,
         "response": list_of_tweets
     }
     return JsonResponse(data, status=200)
