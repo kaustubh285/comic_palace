@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse, Http404, JsonResponse
 from .models import Tweet
+from .forms import TweetForm
 
 
 def home_view(request, *args, **kwargs):
@@ -20,6 +21,20 @@ def tweets_view(request, tweet_id, *args, **kwargs):
         data["message"] = "Invalid Value Entered"
     return JsonResponse(data, status=status)
     # return HttpResponse(f"<h1>Tweet is - {obj.content}</h1>")
+
+
+def tweet_form(request, *args, **kwargs):
+    # Tweet form can be initialized with data or not
+    form = TweetForm(request.POST or None)
+    # If the form has data, it will first confirm if the form is valid
+    if form.is_valid():
+        obj = form.save(commit=False)
+        # Can add other form related changes
+        # Save it to the database if it is valid
+        obj.save()
+        # Reinitialize a blank form
+        form = TweetForm()
+    return render(request, "components/form.html", context={"form": form})
 
 
 def tweet_list_view(request, *args, **kwargs):
