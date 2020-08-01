@@ -30,6 +30,7 @@ def tweets_view(request, tweet_id, *args, **kwargs):
 
 
 def tweet_form(request, *args, **kwargs):
+    print(request.is_ajax())
     # Tweet form can be initialized with data or not
     form = TweetForm(request.POST or None)
     next_url = request.POST.get("next") or None
@@ -39,7 +40,10 @@ def tweet_form(request, *args, **kwargs):
         # Can add other form related changes
         # Save to the db if  valid
         obj.save()
-        if next_url != None and is_safe_url(next_url):
+        if request.is_ajax():
+            # Status 201 means Created Item
+            return JsonResponse(obj.serialize(), status=201)
+        if next_url != None and is_safe_url(next_url, ALLOWED_HOSTS):
             # is_safe_url will check if the url is of different hosts or if its safe.
             return redirect(next_url)
         # Reinitialize a blank form
@@ -49,8 +53,7 @@ def tweet_form(request, *args, **kwargs):
 
 def tweet_list_view(request, *args, **kwargs):
     obj = Tweet.objects.all()
-    list_of_tweets = [{"id": x.id, "content": x.content,
-                       "likes": random.randint(1, 80)} for x in obj]
+    list_of_tweets = [x.serialize() for x in obj]
     data = {
         "isUser": False,
         "response": list_of_tweets
